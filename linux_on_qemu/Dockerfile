@@ -80,7 +80,7 @@ chmod 600 /dev/console     2>/dev/null || true\n\
 chmod 666 /dev/null        2>/dev/null || true\n\
 mkdir -p /dev/pts\n\
 mount -t devpts devpts /dev/pts 2>/dev/null || true\n\
-exec /bin/sh"  > /linux_riscv/rootfs/init && chmod +x /linux_riscv/rootfs/init
+exec setsid /bin/sh -i </dev/console >/dev/console 2>&1"  > /linux_riscv/rootfs/init && chmod +x /linux_riscv/rootfs/init
 
 # RUN echo "#!/bin/sh\nmount -t proc none /proc\necho Hello World\n\nexec /bin/sh" > /linux_riscv/rootfs/init && chmod +x /linux_riscv/rootfs/init
 RUN cd /linux_riscv/rootfs && \
