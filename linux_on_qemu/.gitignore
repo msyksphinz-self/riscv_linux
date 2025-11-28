@@ -1,0 +1,9 @@
+qemu-10.1.0
+qemu-10.1.0.tar.xz
+busybox
+rootfs.cpio
+*.log
+*.md
+.build_qemu
+.build_linux
+.build_busybox
