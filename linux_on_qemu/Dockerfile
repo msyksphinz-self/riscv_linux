@@ -34,6 +34,10 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-dev \
     libslirp-dev \
     sudo \
+    libpixman-1-dev \
+    libnuma-dev \
+    e2fsprogs \
+    genext2fs \
     && apt-get clean
 
 # Environment
@@ -111,13 +115,6 @@ RUN cd /linux_riscv/tests && \
 RUN genext2fs -b 16384 -d /linux_riscv/testfs /linux_riscv/testfs.img && \
     rm -rf /linux_riscv/testfs
     
-RUN apt-get update && apt-get install -y \
-    libpixman-1-dev \
-    libnuma-dev \
-    e2fsprogs \
-    genext2fs \
-    && apt-get clean
-
 # Build QEMU (v9.2.4)
 RUN git clone https://github.com/qemu/qemu.git --depth=1 -b v9.2.4 && \
     cd qemu && \
