@@ -46,14 +46,8 @@ WORKDIR /linux_riscv/
 
 # Download riscv64-unknown-linux-gnu-gcc
 
-# RUN cd $RISCV/../ && \
-#     curl -L https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2025.10.28/riscv64-glibc-ubuntu-24.04-gcc.tar.xz | tar xJ
-
 RUN cd $RISCV/../ && \
     curl -L https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2025.05.10/riscv64-glibc-ubuntu-24.04-gcc-nightly-2025.05.10-nightly.tar.xz | tar Jx
-
-# RUN cd $RISCV/../ && \
-#     curl -L https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2025.09.28/riscv64-glibc-ubuntu-24.04-gcc-nightly-2025.09.28-nightly.tar.xz | tar Jx
 
 # Download BusyBox and create rootfs.cpio (v1.36.0)
 RUN git clone https://git.busybox.net/busybox --depth=1 -b 1_36_0 && \
@@ -67,7 +61,7 @@ RUN apt-get update && apt-get install -y \
     libncurses-dev
 
 RUN mkdir -p /linux_riscv/rootfs && cd /linux_riscv/rootfs && \
-mkdir -p dev proc sys &&\
+mkdir -p dev proc sys mnt &&\
     echo "#!/bin/sh\n\
 echo "[init] start" > /dev/console 2>&1\n\
 mount -t proc    proc  /proc\n\
@@ -80,6 +74,11 @@ chmod 600 /dev/console     2>/dev/null || true\n\
 chmod 666 /dev/null        2>/dev/null || true\n\
 mkdir -p /dev/pts\n\
 mount -t devpts devpts /dev/pts 2>/dev/null || true\n\
+# Mount test filesystem if available\n\
+if [ -b /dev/vdb ]; then\n\
+    mkdir -p /mnt/testfs\n\
+    mount -t ext2 /dev/vdb /mnt/testfs 2>/dev/null && echo "[init] testfs mounted at /mnt/testfs" > /dev/console 2>&1 || echo "[init] failed to mount testfs" > /dev/console 2>&1\n\
+fi\n\
 exec setsid /bin/sh -i </dev/console >/dev/console 2>&1"  > /linux_riscv/rootfs/init && chmod +x /linux_riscv/rootfs/init
 
 # RUN echo "#!/bin/sh\nmount -t proc none /proc\necho Hello World\n\nexec /bin/sh" > /linux_riscv/rootfs/init && chmod +x /linux_riscv/rootfs/init
@@ -99,10 +98,24 @@ RUN git clone https://github.com/riscv-software-src/opensbi.git --depth 1 -b v1.
     make CROSS_COMPILE=riscv64-unknown-linux-gnu- \
     PLATFORM=generic FW_PAYLOAD_PATH=/linux_riscv/linux/arch/riscv/boot/Image
 
+# Build test programs and create test filesystem image
+RUN mkdir -p /linux_riscv/testfs && \
+    mkdir -p /linux_riscv/testfs/bin
+COPY tests/ /linux_riscv/tests/
+RUN cd /linux_riscv/tests && \
+    CROSS_COMPILE=riscv64-unknown-linux-gnu- make && \
+    cp hello test_syscall /linux_riscv/testfs/bin/ && \
+    cd /linux_riscv/tests && make clean
 
+# Create ext2 filesystem image for tests
+RUN genext2fs -b 16384 -d /linux_riscv/testfs /linux_riscv/testfs.img && \
+    rm -rf /linux_riscv/testfs
+    
 RUN apt-get update && apt-get install -y \
     libpixman-1-dev \
     libnuma-dev \
+    e2fsprogs \
+    genext2fs \
     && apt-get clean
 
 # Build QEMU (v9.2.4)
