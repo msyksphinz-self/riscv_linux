@@ -5,15 +5,21 @@ build:
 run:
 	docker run --rm -it -v "${HOME}:${HOME}" --user $(shell id -u):$(shell id -g) -w "${PWD}" qemu-riscv-runner
 
+run-root:
+	docker run --rm -it -v "${HOME}:${HOME}" qemu-riscv-runner
+
 QEMU_VERSION=10.1.0
 build-qemu: .build_qemu
-.build_qemu:
-	wget https://download.qemu.org/qemu-$(QEMU_VERSION).tar.xz
-	tar xJf qemu-$(QEMU_VERSION).tar.xz
+.build_qemu: .download_qemu
 	cd qemu-$(QEMU_VERSION) && \
 		mkdir -p build && cd build && \
 	    ../configure --target-list=riscv64-softmmu,riscv64-linux-user && \
 		make -j32
+	touch $@
+
+.download_qemu:
+	wget https://download.qemu.org/qemu-$(QEMU_VERSION).tar.xz
+	tar xJf qemu-$(QEMU_VERSION).tar.xz
 	touch $@
 
 create_qemu_command:

@@ -122,3 +122,11 @@ RUN git clone https://github.com/qemu/qemu.git --depth=1 -b v9.2.4 && \
     ../configure --target-list=riscv64-softmmu --prefix=$RISCV && \
     make -j$(nproc) && make install && \
     cd ../ && rm -rf build
+
+# Set permissions for files that need to be accessible by non-root users
+# Use 666 for files so any user can read/write (needed when running with --user flag)
+RUN chmod 666 /linux_riscv/testfs.img && \
+    chmod 666 /linux_riscv/rootfs.cpio && \
+    chmod 666 /linux_riscv/linux/arch/riscv/boot/Image && \
+    chmod 755 /linux_riscv && \
+    find /linux_riscv -type d -exec chmod 755 {} \;
